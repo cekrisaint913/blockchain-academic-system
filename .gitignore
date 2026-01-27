@@ -1,0 +1,50 @@
+
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.production
+*.env
+
+# Build
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Fabric
+wallet/
+*.tar.gz
+connection-*.json
+*.block
+organizations/
+channel-artifacts/
+
+# Fabric-samples (important!)
+fabric-samples/
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+
+# Credentials
+*.key
+*.pem
+*.crt
