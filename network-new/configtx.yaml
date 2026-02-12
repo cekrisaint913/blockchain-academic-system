@@ -1,0 +1,162 @@
+# Configuration for Academic Channel
+# Channel: academic-channel
+# Organizations: SchoolOrg (MSP: SchoolMSP) and StudentsOrg (MSP: StudentsMSP)
+# Using System Channel approach (legacy, stable)
+
+---
+Organizations:
+  - &OrdererOrg
+      Name: OrdererOrg
+      ID: OrdererMSP
+      MSPDir: ./organizations/ordererOrganizations/academic.edu/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('OrdererMSP.member')"
+        Writers:
+          Type: Signature
+          Rule: "OR('OrdererMSP.member')"
+        Admins:
+          Type: Signature
+          Rule: "OR('OrdererMSP.admin')"
+      OrdererEndpoints:
+        - orderer.academic.edu:7050
+
+  - &SchoolOrg
+      Name: SchoolMSP
+      ID: SchoolMSP
+      MSPDir: ./organizations/peerOrganizations/school.academic.edu/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('SchoolMSP.admin', 'SchoolMSP.peer', 'SchoolMSP.client')"
+        Writers:
+          Type: Signature
+          Rule: "OR('SchoolMSP.admin', 'SchoolMSP.client')"
+        Admins:
+          Type: Signature
+          Rule: "OR('SchoolMSP.admin')"
+        Endorsement:
+          Type: Signature
+          Rule: "OR('SchoolMSP.peer')"
+      AnchorPeers:
+        - Host: peer0.school.academic.edu
+          Port: 7051
+
+  - &StudentsOrg
+      Name: StudentsMSP
+      ID: StudentsMSP
+      MSPDir: ./organizations/peerOrganizations/students.academic.edu/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('StudentsMSP.admin', 'StudentsMSP.peer', 'StudentsMSP.client')"
+        Writers:
+          Type: Signature
+          Rule: "OR('StudentsMSP.admin', 'StudentsMSP.client')"
+        Admins:
+          Type: Signature
+          Rule: "OR('StudentsMSP.admin')"
+        Endorsement:
+          Type: Signature
+          Rule: "OR('StudentsMSP.peer')"
+      AnchorPeers:
+        - Host: peer0.students.academic.edu
+          Port: 9051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: solo
+  Addresses:
+    - orderer.academic.edu:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  # System Channel Genesis Block (REQUIRED for legacy approach)
+  AcademicOrdererGenesis:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+      Capabilities:
+        <<: *OrdererCapabilities
+    Consortiums:
+      AcademicConsortium:
+        Organizations:
+          - *SchoolOrg
+          - *StudentsOrg
+
+  # Application Channel Profile
+  AcademicChannel:
+    Consortium: AcademicConsortium
+    <<: *ChannelDefaults
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *SchoolOrg
+        - *StudentsOrg
+      Capabilities:
+        <<: *ApplicationCapabilities

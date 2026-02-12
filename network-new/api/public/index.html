@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systeme Academique Blockchain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card{@apply bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-4}
+        .btn{@apply px-4 py-2 rounded-lg font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm}
+        .btn-blue{@apply bg-blue-600 text-white hover:bg-blue-700 shadow-sm}
+        .btn-green{@apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm}
+        .btn-orange{@apply bg-orange-500 text-white hover:bg-orange-600 shadow-sm}
+        .btn-gray{@apply bg-gray-100 text-gray-700 hover:bg-gray-200}
+        .btn-red{@apply bg-red-500 text-white hover:bg-red-600 shadow-sm}
+        .input{@apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white}
+        .sel{@apply px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500}
+        .tab{@apply py-3 px-5 text-sm cursor-pointer border-b-2 border-transparent text-gray-400 hover:text-gray-600 font-medium transition-colors}
+        .tab.active{@apply border-blue-600 text-blue-700}
+        .tab.active-g{@apply border-emerald-600 text-emerald-700}
+        .toast{position:fixed;top:1rem;right:1rem;z-index:50;padding:.75rem 1.25rem;border-radius:.75rem;color:#fff;font-weight:500;font-size:.85rem;transform:translateX(120%);transition:transform .3s;max-width:420px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+        .toast.show{transform:translateX(0)}
+        .badge{@apply text-xs px-2.5 py-1 rounded-full font-medium inline-flex items-center}
+        .spinner{display:inline-block;width:.9rem;height:.9rem;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .5s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .section-title{@apply flex items-center gap-2 text-base font-bold text-gray-800 mb-4}
+        .section-title span{@apply text-lg}
+        .item-card{@apply flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 mb-2 hover:bg-gray-100 transition-colors}
+        .form-card{@apply bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 p-5 mb-5}
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="toast" class="toast"></div>
+
+<!-- ==================== ROLE SELECTION ==================== -->
+<div id="roleScreen" class="min-h-screen flex items-center justify-center">
+    <div class="text-center max-w-2xl mx-auto px-4">
+        <h1 class="text-3xl font-bold text-gray-800 mb-1">Systeme Academique Blockchain</h1>
+        <p class="text-gray-400 mb-8 text-sm">Hyperledger Fabric &mdash; Gestion academique decentralisee</p>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div onclick="selectRole('teacher')" class="card cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all border-2 border-transparent hover:border-blue-400 text-center">
+                <div class="text-5xl mb-3">&#x1F468;&#x200D;&#x1F3EB;</div>
+                <h2 class="text-xl font-bold text-blue-700">Professeur</h2>
+                <p class="text-gray-400 text-xs mt-1">Gestion classes, examens, notes</p>
+            </div>
+            <div onclick="selectRole('student')" class="card cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all border-2 border-transparent hover:border-emerald-400 text-center">
+                <div class="text-5xl mb-3">&#x1F393;</div>
+                <h2 class="text-xl font-bold text-emerald-700">Etudiant</h2>
+                <p class="text-gray-400 text-xs mt-1">Cours, examens, resultats</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== TEACHER VIEW ==================== -->
+<div id="teacherView" class="hidden">
+    <header class="bg-gradient-to-r from-blue-700 to-blue-800 text-white py-3 shadow-lg">
+        <div class="container mx-auto px-4 flex justify-between items-center flex-wrap gap-2">
+            <h1 class="text-lg font-bold">&#x1F468;&#x200D;&#x1F3EB; Espace Professeur</h1>
+            <div class="flex items-center gap-2 flex-wrap">
+                <select id="t-classSelect" onchange="onTeacherClassChange()" class="sel text-gray-800">
+                    <option value="">-- Selectionnez une classe --</option>
+                </select>
+                <button onclick="initDemo()" id="btnInit" class="btn bg-yellow-500 hover:bg-yellow-600 text-white text-xs">Initialiser</button>
+                <button onclick="refreshData()" id="btnRefreshT" class="btn bg-blue-500/80 text-white hover:bg-blue-500 text-xs">Actualiser</button>
+                <button onclick="switchRole()" class="btn bg-white/10 text-white hover:bg-white/20 text-xs">Changer profil</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="t-noClass" class="container mx-auto px-4 py-16 text-center">
+        <div class="text-5xl mb-4 opacity-30">&#x1F4DA;</div>
+        <p class="text-gray-400 text-lg">Selectionnez une classe dans le menu</p>
+        <p class="text-gray-300 text-sm mt-1">ou cliquez "Initialiser" pour creer les 4 classes de demonstration</p>
+    </div>
+
+    <div id="t-classContent" class="hidden">
+        <div class="bg-white shadow-sm border-b">
+            <div class="container mx-auto px-4 flex gap-0 overflow-x-auto">
+                <button onclick="tTab('org')" id="tt-org" class="tab active">&#x1F465; Organisation</button>
+                <button onclick="tTab('mat')" id="tt-mat" class="tab">&#x1F4D6; Supports</button>
+                <button onclick="tTab('exam')" id="tt-exam" class="tab">&#x1F4DD; Examens</button>
+                <button onclick="tTab('grade')" id="tt-grade" class="tab">&#x1F4CA; Notes</button>
+            </div>
+        </div>
+        <main class="container mx-auto px-4 py-6 max-w-4xl">
+
+            <!-- Organisation -->
+            <div id="tp-org">
+                <div class="card">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800" id="t-className"></h3>
+                            <p class="text-gray-500 text-sm mt-1" id="t-classDesc"></p>
+                        </div>
+                        <span class="badge bg-blue-100 text-blue-700" id="t-classId"></span>
+                    </div>
+                    <div class="border-t pt-4">
+                        <div class="section-title"><span>&#x1F465;</span> Etudiants inscrits</div>
+                        <div id="t-enrolledList" class="flex flex-wrap gap-2 mb-5"></div>
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <p class="text-xs text-blue-600 font-medium mb-2">Inscrire un etudiant</p>
+                            <div class="flex gap-2 items-center">
+                                <select id="t-enrollStudent" class="sel flex-1"></select>
+                                <button onclick="teacherEnroll()" class="btn btn-blue">Inscrire</button>
+                            </div>
+                            <p class="text-xs text-blue-400 mt-2" id="t-enrollHint">Un etudiant ne peut appartenir qu'a une seule classe</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supports de cours -->
+            <div id="tp-mat" class="hidden">
+                <div class="form-card border-l-blue-500">
+                    <div class="section-title"><span>&#x2795;</span> Ajouter un support</div>
+                    <div class="flex gap-2 items-end flex-wrap">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Titre</label>
+                            <input id="t-matTitle" placeholder="Ex: Introduction a la cryptographie" class="input">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Type</label>
+                            <select id="t-matType" class="sel">
+                                <option value="COURS">Cours</option>
+                                <option value="TP">TP</option>
+                                <option value="CORRECTION">Correction</option>
+                            </select>
+                        </div>
+                        <button onclick="teacherAddMaterial()" id="btn-addMat" class="btn btn-blue">Ajouter</button>
+                    </div>
+                </div>
+                <div class="section-title"><span>&#x1F4D6;</span> Supports publies</div>
+                <div id="t-matList"></div>
+            </div>
+
+            <!-- Examens -->
+            <div id="tp-exam" class="hidden">
+                <div class="form-card border-l-orange-500">
+                    <div class="section-title"><span>&#x2795;</span> Planifier un examen</div>
+                    <div class="flex gap-2 items-end flex-wrap">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Titre</label>
+                            <input id="t-examTitle" placeholder="Ex: Partiel Cryptographie" class="input">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Date</label>
+                            <input id="t-examDate" type="date" class="input w-44">
+                        </div>
+                        <button onclick="teacherAddExam()" id="btn-addExam" class="btn btn-blue">Creer</button>
+                    </div>
+                </div>
+                <div class="section-title"><span>&#x1F4DD;</span> Examens planifies</div>
+                <div id="t-examList"></div>
+            </div>
+
+            <!-- Notes -->
+            <div id="tp-grade" class="hidden">
+                <div class="form-card border-l-emerald-500">
+                    <div class="section-title"><span>&#x2795;</span> Attribuer une note</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Examen</label>
+                            <select id="t-gradeExam" class="sel w-full"><option value="">Choisir...</option></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Etudiant</label>
+                            <select id="t-gradeStudent" class="sel w-full"><option value="">Choisir...</option></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Note /20</label>
+                            <input id="t-gradeScore" type="number" min="0" max="20" step="0.5" placeholder="0-20" class="input">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-medium mb-1 block">Commentaire</label>
+                            <input id="t-gradeComment" placeholder="Optionnel" class="input">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+                            <input type="checkbox" id="t-autoPublish" checked class="rounded accent-emerald-600"> Publier immediatement
+                        </label>
+                        <button onclick="teacherAddGrade()" id="btn-addGrade" class="btn btn-blue">Soumettre</button>
+                    </div>
+                </div>
+                <div class="section-title"><span>&#x1F4CA;</span> Notes attribuees</div>
+                <div id="t-gradeList"></div>
+            </div>
+
+        </main>
+    </div>
+    <div class="container mx-auto px-4 pb-4 max-w-4xl">
+        <details class="card text-xs">
+            <summary class="font-bold cursor-pointer text-gray-500">&#x1F4E1; Logs Blockchain</summary>
+            <div id="t-logs" class="bg-gray-900 text-green-400 p-3 rounded-lg font-mono max-h-36 overflow-y-auto mt-2"><p>Ready</p></div>
+        </details>
+    </div>
+</div>
+
+<!-- ==================== STUDENT VIEW ==================== -->
+<div id="studentView" class="hidden">
+    <header class="bg-gradient-to-r from-emerald-700 to-emerald-800 text-white py-3 shadow-lg">
+        <div class="container mx-auto px-4 flex justify-between items-center flex-wrap gap-2">
+            <h1 class="text-lg font-bold">&#x1F393; Espace Etudiant</h1>
+            <div class="flex items-center gap-2">
+                <select id="s-studentSelect" onchange="onStudentChange()" class="sel text-gray-800"></select>
+                <button onclick="refreshData()" id="btnRefreshS" class="btn bg-emerald-500/80 text-white hover:bg-emerald-500 text-xs">Actualiser</button>
+                <button onclick="switchRole()" class="btn bg-white/10 text-white hover:bg-white/20 text-xs">Changer profil</button>
+            </div>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-6 max-w-4xl">
+        <div id="s-classGrid" class="grid md:grid-cols-2 gap-4"></div>
+        <div id="s-detail" class="hidden">
+            <div class="flex items-center gap-3 mb-4">
+                <button onclick="closeStudentDetail()" class="btn btn-gray text-xs">&larr; Retour</button>
+                <h2 class="font-bold text-lg text-gray-800" id="s-detailTitle"></h2>
+            </div>
+            <div id="s-notEnrolled" class="hidden card text-center py-10">
+                <div class="text-4xl mb-3 opacity-30">&#x1F512;</div>
+                <p class="text-gray-500 mb-1">Vous n'etes pas inscrit a cette classe.</p>
+                <p class="text-gray-400 text-xs">Contactez votre professeur pour etre inscrit.</p>
+            </div>
+            <div id="s-enrolled" class="hidden">
+                <div class="bg-white shadow-sm border-b rounded-t-xl">
+                    <div class="flex gap-0 px-4 overflow-x-auto">
+                        <button onclick="sTab('smat')" id="st-smat" class="tab active-g">&#x1F4D6; Supports</button>
+                        <button onclick="sTab('sexam')" id="st-sexam" class="tab">&#x1F4DD; Examens</button>
+                        <button onclick="sTab('sgrade')" id="st-sgrade" class="tab">&#x1F4CA; Mes Notes</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-b-xl shadow-sm border border-t-0 border-gray-200 p-5">
+                    <div id="sp-smat"></div>
+                    <div id="sp-sexam" class="hidden"></div>
+                    <div id="sp-sgrade" class="hidden"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="container mx-auto px-4 pb-4 max-w-4xl">
+        <details class="card text-xs">
+            <summary class="font-bold cursor-pointer text-gray-500">&#x1F4E1; Logs Blockchain</summary>
+            <div id="s-logs" class="bg-gray-900 text-green-400 p-3 rounded-lg font-mono max-h-36 overflow-y-auto mt-2"><p>Ready</p></div>
+        </details>
+    </div>
+</div>
+
+<script>
+/*
+ * Dashboard Academique
+ *
+ * Interface web pour le systeme de gestion academique sur blockchain.
+ * Deux vues : professeur (gestion) et etudiant (consultation).
+ * Les donnees transitent par l'API REST qui appelle le chaincode Fabric.
+ */
+
+const API = 'http://localhost:4000';
+const STUDENTS = ['Alice','Bob','Charlie','Diana','Eve'];
+
+// Etat global de l'application
+let role = null;                  // 'teacher' ou 'student'
+let C = { classes: [], details: {}, exams: [], grades: [], materials: {} };
+let tClass = null;                // classe selectionnee cote prof
+let sStudent = null;              // etudiant selectionne
+let sClass = null;                // classe ouverte cote etudiant
+let refreshTimer = null;          // timer d'actualisation automatique (15s)
+
+
+// ==================== UTILITAIRES ====================
+
+// Echappe le HTML pour eviter les injections XSS dans le DOM
+function esc(s){if(!s)return '';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+
+// Notification temporaire (toast) en haut a droite
+function toast(m,ok=true){const t=document.getElementById('toast');t.textContent=m;t.className='toast show '+(ok?'bg-emerald-600':'bg-red-500');setTimeout(()=>t.classList.remove('show'),3500)}
+
+// Ajoute une ligne dans le panneau de logs blockchain
+function log(m,type='info'){const el=document.getElementById(role==='teacher'?'t-logs':'s-logs');if(!el)return;const c=type==='error'?'text-red-400':type==='success'?'text-green-400':'text-blue-300';el.innerHTML+=`<p class="${c}">[${new Date().toLocaleTimeString()}] ${m}</p>`;el.scrollTop=el.scrollHeight}
+
+// Met un bouton en mode chargement (spinner) ou le restaure
+function btnLoad(id,loading){const b=document.getElementById(id);if(!b)return;if(loading){b.dataset.t=b.textContent;b.innerHTML='<span class="spinner"></span>';b.disabled=true}else{b.textContent=b.dataset.t||'';b.disabled=false}}
+
+// Appel generique a l'API REST avec gestion d'erreurs
+async function api(method,url,data){
+    try{
+        const o={method,headers:{'Content-Type':'application/json'}};
+        if(data)o.body=JSON.stringify(data);
+        log(`${method} ${url}`);
+        const r=await fetch(API+url,o);
+        const j=await r.json();
+        if(j.success)log('OK','success'); else log(j.error||'Erreur','error');
+        return j;
+    }catch(e){log('Reseau: '+e.message,'error');toast('Erreur reseau',false);return{success:false,error:e.message}}
+}
+
+// Genere un identifiant unique base sur le nombre d'elements existants
+function nextId(prefix,items,field){
+    const n=items.filter(i=>(i[field]||'').startsWith(prefix)).length;
+    return `${prefix}-${n+1}`;
+}
+
+// Cherche dans quelle classe un etudiant est inscrit
+// Regle metier : un etudiant ne peut appartenir qu'a une seule classe
+function getStudentClass(studentId){
+    for(const cid of Object.keys(C.details)){
+        if((C.details[cid].enrolledStudents||[]).includes(studentId))return cid;
+    }
+    return null;
+}
+
+// ==================== CHOIX DU ROLE ====================
+
+// Bascule vers la vue professeur ou etudiant
+// et lance le chargement initial des donnees
+async function selectRole(r){
+    role=r;
+    document.getElementById('roleScreen').classList.add('hidden');
+    document.getElementById(r==='teacher'?'teacherView':'studentView').classList.remove('hidden');
+    document.getElementById(r==='teacher'?'studentView':'teacherView').classList.add('hidden');
+    if(r==='teacher')populateTeacherClassSelect();
+    else populateStudentSelect();
+    await loadAll();
+    if(refreshTimer)clearInterval(refreshTimer);
+    refreshTimer=setInterval(()=>loadAll(),15000);
+}
+// Retour a l'ecran de selection du role
+function switchRole(){
+    if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}
+    document.getElementById('teacherView').classList.add('hidden');
+    document.getElementById('studentView').classList.add('hidden');
+    document.getElementById('roleScreen').classList.remove('hidden');
+    role=null;tClass=null;sClass=null;
+}
+
+// Actualisation manuelle declenchee par le bouton "Actualiser"
+async function refreshData(){
+    const btnId=role==='teacher'?'btnRefreshT':'btnRefreshS';
+    btnLoad(btnId,true);
+    await loadAll();
+    if(sClass)await loadMaterials(sClass);
+    if(tClass)await loadMaterials(tClass);
+    btnLoad(btnId,false);
+    toast('Donnees actualisees');
+}
+
+// ==================== CHARGEMENT DES DONNEES ====================
+
+// Recupere toutes les donnees depuis l'API (classes, examens, notes)
+// puis charge les details de chaque classe pour avoir la liste des inscrits
+async function loadAll(){
+    const [cls,exams,grades]=await Promise.all([api('GET','/api/classes'),api('GET','/api/exams'),api('GET','/api/grades')]);
+    C.classes=cls.success?cls.data:[];
+    C.exams=exams.success?exams.data:[];
+    C.grades=grades.success?grades.data:[];
+    const detailPromises=C.classes.map(c=>api('GET','/api/classes/'+c.id));
+    const detailResults=await Promise.all(detailPromises);
+    detailResults.forEach(r=>{if(r.success&&r.data)C.details[r.data.id]=r.data});
+    if(role==='teacher'){populateTeacherClassSelect();renderTeacher();if(tClass){await loadMaterials(tClass);renderTeacherMaterials()}}
+    if(role==='student'){renderStudent();if(sClass){await loadMaterials(sClass);renderStudentDetail()}}
+}
+async function loadMaterials(classId){
+    const r=await api('GET',`/api/classes/${classId}/materials`);
+    C.materials[classId]=r.success?r.data:[];
+}
+
+// ==================== INITIALISATION DEMO ====================
+
+// Cree les 4 classes de demo et inscrit un etudiant par classe
+async function initDemo(){
+    btnLoad('btnInit',true);
+    toast('Initialisation en cours...',true);
+    log('Initialisation: creation de 4 classes + inscription etudiants...');
+    const r=await api('POST','/api/init');
+    btnLoad('btnInit',false);
+    if(r.success){toast(r.message);await loadAll()}
+    else toast(r.error||'Erreur init',false);
+}
+
+// ==================== VUE PROFESSEUR ====================
+
+// Remplit le menu deroulant des classes dans l'en-tete prof
+function populateTeacherClassSelect(){
+    const sel=document.getElementById('t-classSelect');
+    const prev=sel.value;
+    sel.innerHTML='<option value="">-- Selectionnez une classe --</option>';
+    C.classes.forEach(c=>{sel.innerHTML+=`<option value="${esc(c.id)}">${esc(c.id)} - ${esc(c.name)}</option>`});
+    if(prev&&C.classes.find(c=>c.id===prev))sel.value=prev;
+}
+// Quand le prof change de classe dans le menu
+function onTeacherClassChange(){
+    tClass=document.getElementById('t-classSelect').value;
+    if(!tClass){document.getElementById('t-noClass').classList.remove('hidden');document.getElementById('t-classContent').classList.add('hidden');return}
+    document.getElementById('t-noClass').classList.add('hidden');
+    document.getElementById('t-classContent').classList.remove('hidden');
+    tTab('org');
+    renderTeacher();
+    loadMaterials(tClass).then(()=>renderTeacherMaterials());
+}
+
+// Navigation par onglets (organisation, supports, examens, notes)
+function tTab(id){
+    ['org','mat','exam','grade'].forEach(t=>{
+        document.getElementById('tp-'+t).classList.toggle('hidden',t!==id);
+        document.getElementById('tt-'+t).classList.toggle('active',t===id);
+    });
+}
+// Affiche les infos de la classe selectionnee (inscrits, examens, notes)
+function renderTeacher(){
+    if(!tClass)return;
+    const d=C.details[tClass]||{};
+    document.getElementById('t-className').textContent=d.name||tClass;
+    document.getElementById('t-classDesc').textContent=d.description||'';
+    document.getElementById('t-classId').textContent=tClass;
+    // Liste des etudiants inscrits
+    const enrolled=d.enrolledStudents||[];
+    document.getElementById('t-enrolledList').innerHTML=enrolled.length===0
+        ?'<p class="text-gray-400 text-sm italic">Aucun etudiant inscrit dans cette classe</p>'
+        :enrolled.map(s=>`<span class="badge bg-blue-50 text-blue-700 border border-blue-200">&#x1F464; ${esc(s)}</span>`).join('');
+    // Menu d'inscription : on ne montre que les etudiants pas encore affectes
+    const available=STUDENTS.filter(s=>!getStudentClass(s));
+    const esel=document.getElementById('t-enrollStudent');
+    esel.innerHTML=available.length===0
+        ?'<option>Tous les etudiants sont affectes</option>'
+        :available.map(s=>`<option value="${s}">${s}</option>`).join('');
+    document.getElementById('t-enrollHint').textContent=available.length===0
+        ?'Tous les etudiants sont deja inscrits dans une classe'
+        :`${available.length} etudiant(s) disponible(s) - Un etudiant ne peut appartenir qu'a une seule classe`;
+    // Menu des examens pour la saisie de notes
+    const classExams=C.exams.filter(e=>e.classId===tClass);
+    document.getElementById('t-gradeExam').innerHTML='<option value="">Choisir...</option>'
+        +classExams.map(e=>`<option value="${esc(e.examId)}">${esc(e.title)}</option>`).join('');
+    // Menu des etudiants pour la saisie (seulement ceux inscrits dans cette classe)
+    document.getElementById('t-gradeStudent').innerHTML='<option value="">Choisir...</option>'
+        +enrolled.map(s=>`<option value="${s}">${s}</option>`).join('');
+    renderTeacherExams();
+    renderTeacherGrades();
+}
+// Affiche les supports de cours (icone differente selon le type)
+function renderTeacherMaterials(){
+    const mats=C.materials[tClass]||[];
+    const el=document.getElementById('t-matList');
+    if(mats.length===0){el.innerHTML='<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4D6;</div><p class="text-sm">Aucun support pour cette classe</p></div>';return}
+    el.innerHTML=mats.map(m=>{
+        const conf=m.materialType==='COURS'
+            ?{bg:'bg-blue-50',border:'border-blue-200',text:'text-blue-700',icon:'&#x1F4D8;'}
+            :m.materialType==='TP'
+            ?{bg:'bg-purple-50',border:'border-purple-200',text:'text-purple-700',icon:'&#x1F4BB;'}
+            :{bg:'bg-orange-50',border:'border-orange-200',text:'text-orange-700',icon:'&#x2705;'};
+        return `<div class="item-card">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">${conf.icon}</span>
+                <div>
+                    <span class="font-semibold text-gray-800">${esc(m.title)}</span>
+                    <span class="badge ${conf.bg} ${conf.text} ${conf.border} border ml-2">${esc(m.materialType)}</span>
+                </div>
+            </div>
+            <span class="text-xs text-gray-400 font-mono">${esc(m.materialId||m.id||'')}</span>
+        </div>`;
+    }).join('');
+}
+// Affiche les examens avec mini-calendrier et badge passe/a venir
+function renderTeacherExams(){
+    const exams=C.exams.filter(e=>e.classId===tClass);
+    const el=document.getElementById('t-examList');
+    if(exams.length===0){el.innerHTML='<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4DD;</div><p class="text-sm">Aucun examen pour cette classe</p></div>';return}
+    el.innerHTML=exams.map(e=>{
+        const d=new Date(e.examDate);
+        const dateStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+        const isPast=d<new Date();
+        return `<div class="item-card">
+            <div class="flex items-center gap-3">
+                <div class="text-center leading-tight ${isPast?'opacity-50':''}">
+                    <div class="text-xs font-bold text-gray-500 uppercase">${d.toLocaleDateString('fr-FR',{month:'short'})}</div>
+                    <div class="text-xl font-bold text-gray-700">${d.getDate()}</div>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-800">${esc(e.title)}</span>
+                    ${isPast?'<span class="badge bg-gray-100 text-gray-500 ml-2">Passe</span>':'<span class="badge bg-green-50 text-green-700 border border-green-200 ml-2">A venir</span>'}
+                </div>
+            </div>
+            <span class="text-xs text-gray-400 font-mono">${esc(e.examId)}</span>
+        </div>`;
+    }).join('');
+}
+// Tableau des notes avec code couleur (vert >=70%, orange >=50%, rouge <50%)
+function renderTeacherGrades(){
+    const classExamIds=C.exams.filter(e=>e.classId===tClass).map(e=>e.examId);
+    const grades=C.grades.filter(g=>classExamIds.includes(g.examId));
+    const el=document.getElementById('t-gradeList');
+    if(grades.length===0){el.innerHTML='<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4CA;</div><p class="text-sm">Aucune note pour cette classe</p></div>';return}
+    el.innerHTML='<div class="bg-white rounded-xl border border-gray-200 overflow-hidden"><table class="w-full text-sm"><thead class="bg-gray-50 text-gray-500 text-xs uppercase"><tr><th class="text-left py-3 px-4">Etudiant</th><th class="text-left py-3 px-4">Examen</th><th class="text-center py-3 px-4">Note</th><th class="text-center py-3 px-4">Statut</th></tr></thead><tbody>'
+        +grades.map(g=>{
+            const exam=C.exams.find(e=>e.examId===g.examId);
+            const pct=Math.round((g.score/g.maxScore)*100);
+            const scoreColor=pct>=70?'text-emerald-600':pct>=50?'text-orange-500':'text-red-500';
+            return `<tr class="border-t border-gray-100 hover:bg-gray-50">
+                <td class="py-3 px-4 font-medium text-gray-800">&#x1F464; ${esc(g.studentId)}</td>
+                <td class="py-3 px-4 text-gray-500">${esc(exam?exam.title:g.examId)}${g.comments?`<br><span class="text-xs text-gray-400">${esc(g.comments)}</span>`:''}</td>
+                <td class="py-3 px-4 text-center"><span class="text-lg font-bold ${scoreColor}">${g.score}</span><span class="text-gray-400">/${g.maxScore}</span></td>
+                <td class="py-3 px-4 text-center">${g.isPublished
+                    ?'<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">Publiee</span>'
+                    :`<button onclick="publishGrade('${esc(g.gradeId||g.id)}')" class="btn btn-orange text-xs py-1 px-3">Publier</button>`}</td>
+            </tr>`;
+        }).join('')
+        +'</tbody></table></div>';
+}
+
+// -- Actions du professeur --
+
+// Inscription d'un etudiant dans la classe courante
+async function teacherEnroll(){
+    const s=document.getElementById('t-enrollStudent').value;
+    if(!s||!tClass)return;
+    // Verification cote client : un etudiant = une seule classe
+    const existing=getStudentClass(s);
+    if(existing){toast(`${s} est deja inscrit dans ${existing}`,false);return}
+    const r=await api('POST',`/api/classes/${tClass}/enroll`,{studentId:s});
+    if(r.success){toast(`${s} inscrit dans ${tClass}`);await loadAll();onTeacherClassChange()}else toast(r.error,false);
+}
+// Ajout d'un support de cours (cours, TP ou correction)
+async function teacherAddMaterial(){
+    const title=document.getElementById('t-matTitle').value.trim();
+    const type=document.getElementById('t-matType').value;
+    if(!title){toast('Titre requis',false);return}
+    const id='MAT-'+tClass+'-'+(Date.now()%100000);
+    btnLoad('btn-addMat',true);
+    const r=await api('POST','/api/materials',{materialId:id,classId:tClass,title,materialType:type});
+    btnLoad('btn-addMat',false);
+    if(r.success){toast(r.message);document.getElementById('t-matTitle').value='';await loadMaterials(tClass);renderTeacherMaterials()}else toast(r.error,false);
+}
+// Planification d'un examen avec titre et date
+async function teacherAddExam(){
+    const title=document.getElementById('t-examTitle').value.trim();
+    const date=document.getElementById('t-examDate').value;
+    if(!title||!date){toast('Titre et date requis',false);return}
+    const id=nextId('EX-'+tClass,C.exams,'examId');
+    btnLoad('btn-addExam',true);
+    const r=await api('POST','/api/exams',{examId:id,classId:tClass,title,examDate:date});
+    btnLoad('btn-addExam',false);
+    if(r.success){toast(r.message);document.getElementById('t-examTitle').value='';document.getElementById('t-examDate').value='';await loadAll()}else toast(r.error,false);
+}
+// Soumission d'une note avec publication automatique si la case est cochee
+async function teacherAddGrade(){
+    const examId=document.getElementById('t-gradeExam').value;
+    const studentId=document.getElementById('t-gradeStudent').value;
+    const score=document.getElementById('t-gradeScore').value;
+    const comment=document.getElementById('t-gradeComment').value;
+    const autoPublish=document.getElementById('t-autoPublish').checked;
+    if(!examId||!studentId||score===''){toast('Examen, etudiant et note requis',false);return}
+    if(Number(score)<0||Number(score)>20){toast('Note entre 0 et 20',false);return}
+    const id='GR-'+examId+'-'+studentId;
+    btnLoad('btn-addGrade',true);
+    const r=await api('POST','/api/grades',{gradeId:id,examId,studentId,score:Number(score),maxScore:20,comments:comment});
+    if(r.success&&autoPublish){
+        log('Publication automatique...');
+        await api('POST',`/api/grades/${id}/publish`);
+    }
+    btnLoad('btn-addGrade',false);
+    if(r.success){toast(autoPublish?'Note soumise et publiee':'Note soumise (non publiee)');document.getElementById('t-gradeScore').value='';document.getElementById('t-gradeComment').value='';await loadAll()}else toast(r.error,false);
+}
+// Publication manuelle d'une note (la rend visible pour l'etudiant)
+async function publishGrade(gradeId){
+    const r=await api('POST',`/api/grades/${gradeId}/publish`);
+    if(r.success){toast('Note publiee');await loadAll()}else toast(r.error,false);
+}
+
+// ==================== VUE ETUDIANT ====================
+
+// Remplit le selecteur d'etudiant dans l'en-tete
+function populateStudentSelect(){
+    const sel=document.getElementById('s-studentSelect');
+    sel.innerHTML=STUDENTS.map(s=>`<option value="${s}">${s}</option>`).join('');
+    sStudent=sel.value;
+}
+// Changement d'etudiant : retour a la grille des classes
+function onStudentChange(){
+    sStudent=document.getElementById('s-studentSelect').value;
+    sClass=null;
+    document.getElementById('s-classGrid').classList.remove('hidden');
+    document.getElementById('s-detail').classList.add('hidden');
+    renderStudent();
+}
+// Affiche la grille des classes avec indication de l'inscription
+function renderStudent(){
+    sStudent=document.getElementById('s-studentSelect').value;
+    const grid=document.getElementById('s-classGrid');
+    const myClass=getStudentClass(sStudent);
+    if(C.classes.length===0){grid.innerHTML='<div class="col-span-2 text-center py-12"><div class="text-5xl mb-3 opacity-20">&#x1F4DA;</div><p class="text-gray-400">Aucune classe disponible. Le professeur doit initialiser la demo.</p></div>';return}
+    // Bandeau d'info : montre si l'etudiant est inscrit ou non
+    let infoBar='';
+    if(myClass){
+        const d=C.details[myClass]||{};
+        infoBar=`<div class="col-span-2 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3 mb-2">
+            <span class="text-2xl">&#x2705;</span>
+            <div><p class="font-semibold text-emerald-800">Inscrit en <strong>${esc(d.name||myClass)}</strong></p>
+            <p class="text-xs text-emerald-600">Cliquez sur votre classe pour acceder aux supports, examens et notes</p></div>
+        </div>`;
+    } else {
+        infoBar=`<div class="col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 mb-2">
+            <span class="text-2xl">&#x26A0;&#xFE0F;</span>
+            <div><p class="font-semibold text-amber-800">Non inscrit</p>
+            <p class="text-xs text-amber-600">Contactez votre professeur pour etre inscrit dans une classe</p></div>
+        </div>`;
+    }
+    grid.innerHTML=infoBar+C.classes.map(c=>{
+        const d=C.details[c.id]||{};
+        const enrolled=(d.enrolledStudents||[]);
+        const isEnrolled=enrolled.includes(sStudent);
+        return `<div class="card cursor-pointer hover:shadow-md transition-all border-l-4 ${isEnrolled?'border-l-emerald-500 bg-emerald-50/30':'border-l-gray-200'}" onclick="openStudentClass('${esc(c.id)}')">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h3 class="font-bold text-gray-800">${esc(c.name)}</h3>
+                    <p class="text-xs text-gray-400">${esc(c.id)}</p>
+                </div>
+                ${isEnrolled?'<span class="badge bg-emerald-100 text-emerald-700 border border-emerald-200">Ma classe</span>':'<span class="badge bg-gray-100 text-gray-400">Non inscrit</span>'}
+            </div>
+            <p class="text-sm text-gray-500 mb-3">${esc(d.description||c.description||'')}</p>
+            <div class="flex flex-wrap gap-1">
+                ${enrolled.map(s=>`<span class="badge ${s===sStudent?'bg-emerald-100 text-emerald-700':'bg-gray-100 text-gray-500'} text-xs">${esc(s)}</span>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+    if(sClass)renderStudentDetail();
+}
+// Ouvre le detail d'une classe (supports, examens, notes)
+async function openStudentClass(classId){
+    sClass=classId;
+    document.getElementById('s-classGrid').classList.add('hidden');
+    document.getElementById('s-detail').classList.remove('hidden');
+    sTab('smat');
+    await loadAll();
+}
+// Retour a la grille des classes
+function closeStudentDetail(){
+    sClass=null;
+    document.getElementById('s-classGrid').classList.remove('hidden');
+    document.getElementById('s-detail').classList.add('hidden');
+}
+// Navigation par onglets cote etudiant
+function sTab(id){
+    ['smat','sexam','sgrade'].forEach(t=>{
+        document.getElementById('sp-'+t).classList.toggle('hidden',t!==id);
+        document.getElementById('st-'+t).classList.toggle('active-g',t===id);
+    });
+}
+// Affiche le contenu d'une classe pour l'etudiant
+// Si l'etudiant n'est pas inscrit, on affiche un message "cadenas"
+function renderStudentDetail(){
+    if(!sClass)return;
+    const d=C.details[sClass]||{};
+    const enrolled=(d.enrolledStudents||[]);
+    const isEnrolled=enrolled.includes(sStudent);
+    document.getElementById('s-detailTitle').textContent=(d.name||sClass)+' ('+sClass+')';
+    document.getElementById('s-notEnrolled').classList.toggle('hidden',isEnrolled);
+    document.getElementById('s-enrolled').classList.toggle('hidden',!isEnrolled);
+    if(!isEnrolled)return;
+
+    // Supports de cours
+    const mats=C.materials[sClass]||[];
+    document.getElementById('sp-smat').innerHTML=mats.length===0
+        ?'<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4D6;</div><p class="text-sm">Aucun support disponible</p></div>'
+        :mats.map(m=>{
+            const conf=m.materialType==='COURS'
+                ?{bg:'bg-blue-50',text:'text-blue-700',icon:'&#x1F4D8;',border:'border-blue-200'}
+                :m.materialType==='TP'
+                ?{bg:'bg-purple-50',text:'text-purple-700',icon:'&#x1F4BB;',border:'border-purple-200'}
+                :{bg:'bg-orange-50',text:'text-orange-700',icon:'&#x2705;',border:'border-orange-200'};
+            return `<div class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                <span class="text-lg">${conf.icon}</span>
+                <span class="text-sm font-medium text-gray-700">${esc(m.title)}</span>
+                <span class="badge ${conf.bg} ${conf.text} border ${conf.border}">${esc(m.materialType)}</span>
+            </div>`;
+        }).join('');
+
+    // Examens (avec indication correction disponible 24h apres)
+    const exams=C.exams.filter(e=>e.classId===sClass);
+    const now=new Date();
+    document.getElementById('sp-sexam').innerHTML=exams.length===0
+        ?'<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4DD;</div><p class="text-sm">Aucun examen</p></div>'
+        :exams.map(e=>{
+            const examDate=new Date(e.examDate);
+            const corrDate=new Date(examDate.getTime()+24*60*60*1000);
+            const corrAvail=now>=corrDate;
+            const isPast=examDate<now;
+            const corrections=(C.materials[sClass]||[]).filter(m=>m.materialType==='CORRECTION');
+            return `<div class="p-3 rounded-lg border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="text-center leading-tight w-12 ${isPast?'opacity-50':''}">
+                            <div class="text-xs font-bold text-gray-400 uppercase">${examDate.toLocaleDateString('fr-FR',{month:'short'})}</div>
+                            <div class="text-lg font-bold text-gray-700">${examDate.getDate()}</div>
+                        </div>
+                        <span class="font-semibold text-gray-700">${esc(e.title)}</span>
+                    </div>
+                    ${isPast?'<span class="badge bg-gray-100 text-gray-500">Passe</span>':'<span class="badge bg-blue-50 text-blue-700 border border-blue-200">A venir</span>'}
+                </div>
+                ${isPast?`<div class="mt-2 ml-15 text-xs ${corrAvail?'text-emerald-600':'text-amber-500'}">
+                    ${corrAvail
+                        ?(corrections.length>0?'&#x2705; Correction disponible dans les supports':'&#x23F3; Correction: en attente de publication par le professeur')
+                        :`&#x1F551; Correction disponible dans ${Math.ceil((corrDate-now)/(1000*60*60))}h`}
+                </div>`:''}
+            </div>`;
+        }).join('');
+
+    // Notes publiees uniquement (les non-publiees restent invisibles)
+    const classExamIds=exams.map(e=>e.examId);
+    const myGrades=C.grades.filter(g=>classExamIds.includes(g.examId)&&g.studentId===sStudent&&g.isPublished);
+    document.getElementById('sp-sgrade').innerHTML=myGrades.length===0
+        ?'<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4CA;</div><p class="text-sm">Aucune note publiee</p></div>'
+        :('<div class="space-y-2">'+myGrades.map(g=>{
+            const exam=C.exams.find(e=>e.examId===g.examId);
+            const pct=Math.round((g.score/g.maxScore)*100);
+            const conf=pct>=70?{bg:'bg-emerald-50',text:'text-emerald-700',border:'border-emerald-200'}:pct>=50?{bg:'bg-amber-50',text:'text-amber-700',border:'border-amber-200'}:{bg:'bg-red-50',text:'text-red-600',border:'border-red-200'};
+            return `<div class="flex justify-between items-center p-4 rounded-lg ${conf.bg} border ${conf.border}">
+                <div>
+                    <span class="font-semibold text-gray-800">${esc(exam?exam.title:g.examId)}</span>
+                    ${g.comments?`<p class="text-xs text-gray-500 mt-0.5">${esc(g.comments)}</p>`:''}
+                </div>
+                <span class="text-2xl font-bold ${conf.text}">${g.score}<span class="text-sm text-gray-400">/${g.maxScore}</span></span>
+            </div>`;
+        }).join('')+'</div>');
+}
+</script>
+</body>
+</html>

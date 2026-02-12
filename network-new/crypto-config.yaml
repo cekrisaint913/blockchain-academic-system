@@ -1,0 +1,34 @@
+# Crypto configuration for Academic Blockchain System
+# Organizations: SchoolOrg (teachers) and StudentsOrg (students)
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: academic.edu
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+    Users:
+      Count: 1
+
+PeerOrgs:
+  # SchoolOrg - L'établissement (admin + professeurs)
+  - Name: SchoolOrg
+    Domain: school.academic.edu
+    EnableNodeOUs: true
+    Template:
+      Count: 1  # peer0.school.academic.edu
+      Start: 0
+      Hostname: peer{{.Index}}
+    Users:
+      Count: 4  # 1 admin + 3 teachers (teacher1, teacher2, teacher3)
+
+  # StudentsOrg - Les étudiants
+  - Name: StudentsOrg
+    Domain: students.academic.edu
+    EnableNodeOUs: true
+    Template:
+      Count: 1  # peer0.students.academic.edu
+      Start: 0
+      Hostname: peer{{.Index}}
+    Users:
+      Count: 10  # student1 à student10

@@ -1,0 +1,169 @@
+# Docker Compose for Fabric Network
+# Orderer + Peers (SchoolOrg + StudentsOrg)
+
+networks:
+  academic:
+    name: academic-network
+
+volumes:
+  orderer.academic.edu:
+  peer0.school.academic.edu:
+  peer0.students.academic.edu:
+
+services:
+  orderer.academic.edu:
+    container_name: orderer.academic.edu
+    image: hyperledger/fabric-orderer:latest
+    labels:
+      service: hyperledger-fabric
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      # Genesis Block (System Channel approach)
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      # TLS
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_OPERATIONS_LISTENADDRESS=orderer.academic.edu:9443
+      - ORDERER_METRICS_PROVIDER=prometheus
+    working_dir: /root
+    command: orderer
+    volumes:
+      - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+      - ./organizations/ordererOrganizations/academic.edu/orderers/orderer.academic.edu/msp:/var/hyperledger/orderer/msp
+      - ./organizations/ordererOrganizations/academic.edu/orderers/orderer.academic.edu/tls:/var/hyperledger/orderer/tls
+      - orderer.academic.edu:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+      - 9443:9443
+    networks:
+      - academic
+
+  peer0.school.academic.edu:
+    container_name: peer0.school.academic.edu
+    image: hyperledger/fabric-peer:latest
+    labels:
+      service: hyperledger-fabric
+    environment:
+      # Logging
+      - FABRIC_LOGGING_SPEC=INFO
+      # Peer ID and networking
+      - CORE_PEER_ID=peer0.school.academic.edu
+      - CORE_PEER_ADDRESS=peer0.school.academic.edu:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.school.academic.edu:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.school.academic.edu:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.school.academic.edu:7051
+      - CORE_PEER_LOCALMSPID=SchoolMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      # TLS
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Chaincode Builder Configuration
+      - CORE_CHAINCODE_BUILDER=hyperledger/fabric-ccenv:latest
+      - CORE_CHAINCODE_GOLANG_RUNTIME=hyperledger/fabric-baseos:latest
+      - CORE_CHAINCODE_NODE_RUNTIME=hyperledger/fabric-nodeenv:latest
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      # Docker Configuration
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=academic-network
+      # Operations
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.school.academic.edu:9444
+      - CORE_METRICS_PROVIDER=prometheus
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations/peerOrganizations/school.academic.edu/peers/peer0.school.academic.edu/msp:/etc/hyperledger/fabric/msp
+      - ./organizations/peerOrganizations/school.academic.edu/peers/peer0.school.academic.edu/tls:/etc/hyperledger/fabric/tls
+      - peer0.school.academic.edu:/var/hyperledger/production
+    ports:
+      - 7051:7051
+      - 9444:9444
+    networks:
+      - academic
+
+  peer0.students.academic.edu:
+    container_name: peer0.students.academic.edu
+    image: hyperledger/fabric-peer:latest
+    labels:
+      service: hyperledger-fabric
+    environment:
+      # Logging
+      - FABRIC_LOGGING_SPEC=INFO
+      # Peer ID and networking
+      - CORE_PEER_ID=peer0.students.academic.edu
+      - CORE_PEER_ADDRESS=peer0.students.academic.edu:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.students.academic.edu:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.students.academic.edu:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.students.academic.edu:9051
+      - CORE_PEER_LOCALMSPID=StudentsMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      # TLS
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Chaincode Builder Configuration
+      - CORE_CHAINCODE_BUILDER=hyperledger/fabric-ccenv:latest
+      - CORE_CHAINCODE_GOLANG_RUNTIME=hyperledger/fabric-baseos:latest
+      - CORE_CHAINCODE_NODE_RUNTIME=hyperledger/fabric-nodeenv:latest
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      # Docker Configuration
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=academic-network
+      # Operations
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.students.academic.edu:9445
+      - CORE_METRICS_PROVIDER=prometheus
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations/peerOrganizations/students.academic.edu/peers/peer0.students.academic.edu/msp:/etc/hyperledger/fabric/msp
+      - ./organizations/peerOrganizations/students.academic.edu/peers/peer0.students.academic.edu/tls:/etc/hyperledger/fabric/tls
+      - peer0.students.academic.edu:/var/hyperledger/production
+    ports:
+      - 9051:9051
+      - 9445:9445
+    networks:
+      - academic
+
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:latest
+    labels:
+      service: hyperledger-fabric
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - FABRIC_LOGGING_SPEC=INFO
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
+      - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts
+      - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+      - ./chaincode:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
+    depends_on:
+      - peer0.school.academic.edu
+      - peer0.students.academic.edu
+    networks:
+      - academic
