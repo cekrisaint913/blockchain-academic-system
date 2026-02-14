@@ -672,17 +672,19 @@ function renderStudentDetail(){
             </div>`;
         }).join('');
 
-    // Examens (avec indication correction disponible 24h apres)
+    // Examens avec indication correction
     const exams=C.exams.filter(e=>e.classId===sClass);
     const now=new Date();
     document.getElementById('sp-sexam').innerHTML=exams.length===0
         ?'<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-2">&#x1F4DD;</div><p class="text-sm">Aucun examen</p></div>'
         :exams.map(e=>{
             const examDate=new Date(e.examDate);
-            const corrDate=new Date(examDate.getTime()+24*60*60*1000);
-            const corrAvail=now>=corrDate;
+            const corrDate=new Date(examDate.getTime()+48*60*60*1000);
             const isPast=examDate<now;
-            const corrections=(C.materials[sClass]||[]).filter(m=>m.materialType==='CORRECTION');
+            const corrAvail=isPast&&now>=corrDate;
+            let corrText='';
+            if(corrAvail) corrText=`<p class="text-emerald-600 text-sm mt-2">&#x2705; Correction disponible</p>`;
+            else if(isPast) corrText=`<p class="text-amber-500 text-sm mt-2">Correction disponible le ${corrDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>`;
             return `<div class="p-3 rounded-lg border-b border-gray-100 last:border-0 hover:bg-gray-50">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3">
@@ -694,11 +696,7 @@ function renderStudentDetail(){
                     </div>
                     ${isPast?'<span class="badge bg-gray-100 text-gray-500">Passe</span>':'<span class="badge bg-blue-50 text-blue-700 border border-blue-200">A venir</span>'}
                 </div>
-                ${isPast?`<div class="mt-2 ml-15 text-xs ${corrAvail?'text-emerald-600':'text-amber-500'}">
-                    ${corrAvail
-                        ?(corrections.length>0?'&#x2705; Correction disponible dans les supports':'&#x23F3; Correction: en attente de publication par le professeur')
-                        :`&#x1F551; Correction disponible dans ${Math.ceil((corrDate-now)/(1000*60*60))}h`}
-                </div>`:''}
+                ${corrText}
             </div>`;
         }).join('');
 

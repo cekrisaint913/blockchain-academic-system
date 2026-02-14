@@ -16,8 +16,8 @@ NC='\033[0m' # No Color
 
 CHANNEL_NAME="academic-channel"
 CHAINCODE_NAME="academic-cc"
-CHAINCODE_VERSION="2.0"
-CHAINCODE_SEQUENCE="2"
+CHAINCODE_VERSION="1.0"
+CHAINCODE_SEQUENCE="1"
 CC_SRC_PATH="./chaincode/academic-cc"
 
 # Print colored message

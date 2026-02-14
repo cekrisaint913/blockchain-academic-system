@@ -122,8 +122,20 @@ router.post('/init', async (req, res) => {
             enrollSequential('DATA401', ['Diana']),
         ]);
 
+        console.log('[init] Phase 3 : creation d\'un examen passe + correction...');
+
+        // Examen du 11 fevrier (passe > 24h) pour que la correction soit accessible aux etudiants
+        await runScript('invoke', 'AcademicContract:CreateExam',
+            ['EX-CYBER101-1', 'CYBER101', 'Partiel Cybersecurite', '2026-02-11', 'Examen de mi-semestre']);
+
+        // Upload de la correction sur l'examen (correctionFileHash)
+        // L'examen est du 11 fevrier, on est apres -> upload autorise
+        const corrHash = 'Qmcorrection' + Date.now().toString(36);
+        await runScript('invoke', 'ExamContract:UploadCorrection',
+            ['EX-CYBER101-1', corrHash]);
+
         console.log('[init] Termine !');
-        res.json({ success: true, message: 'Demo initialisee : 4 classes, 4 etudiants inscrits (Eve disponible)' });
+        res.json({ success: true, message: 'Demo initialisee : 4 classes, 4 etudiants inscrits, 1 examen + correction (Eve disponible)' });
     } catch (error) {
         console.error('[init] Erreur :', error);
         res.status(500).json({ success: false, error: error.message });

@@ -80,4 +80,6 @@ docker exec \
         --tlsRootCertFiles $SCHOOL_TLS \
         --peerAddresses peer0.students.academic.edu:9051 \
         --tlsRootCertFiles $STUDENTS_TLS \
+        --waitForEvent \
+        --waitForEventTimeout 30s \
         -c "$JSON_ARGS"

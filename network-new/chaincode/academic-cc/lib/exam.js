@@ -281,7 +281,7 @@ class ExamContract extends Contract {
                 // Filtrer les examens de cette classe uniquement
                 if (record.docType === 'exam' && record.classId === classId) {
                     const examDate = new Date(record.examDate);
-                    const correctionAvailableAt = new Date(examDate.getTime() + 24 * 60 * 60 * 1000); // +24h
+                    const correctionAvailableAt = new Date(examDate.getTime() + 48 * 60 * 60 * 1000); // +48h
 
                     // Calculer si la correction est disponible
                     const correctionAvailable = now >= correctionAvailableAt && record.correctionFileHash !== null;
@@ -421,7 +421,7 @@ class ExamContract extends Contract {
         const isTeacher = this._isSchoolMember(ctx);
         const now = new Date();
         const examDate = new Date(exam.examDate);
-        const correctionAvailableAt = new Date(examDate.getTime() + 24 * 60 * 60 * 1000); // +24h
+        const correctionAvailableAt = new Date(examDate.getTime() + 48 * 60 * 60 * 1000); // +48h
 
         // RÈGLE DES 24H: Seulement pour les étudiants
         if (!isTeacher && now < correctionAvailableAt) {
